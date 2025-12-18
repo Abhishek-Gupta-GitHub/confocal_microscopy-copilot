@@ -2,6 +2,8 @@
 
 from pathlib import Path
 from typing import Dict, Any, Tuple
+from typing import Any
+import json
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -71,6 +73,20 @@ def _domain_twin_settings(domain: str) -> Dict[str, Any]:
     elif domain == "Materials science":
         base.update({"n_particles": 120, "D": 0.01})
     return base
+
+
+
+def _json_safe(obj: Any):
+    # Minimal converter: handles numpy types and arrays
+    if isinstance(obj, (np.integer, np.floating)):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(x) for x in obj]
+    if isinstance(obj, dict):
+        return {str(k): _json_safe(v) for k, v in obj.items()}
+    return obj
 
 
 # ---------- Dataset helpers ---------- #
@@ -166,6 +182,11 @@ def _choose_physics_engine(use_advanced: bool):
     return _physics_basic, False
 
 
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="No maxima survived mass- and size-based filtering",
+)
 
 
 # ---------- Main pipeline ---------- #
@@ -278,12 +299,16 @@ def run_pipeline(dataset_choice, domain_choice, uploaded_file, max_frames, use_a
     msd_fig = make_msd_plot(summary)
     depth_fig = make_depth_plot(summary)
 
+    safe_summary = _json_safe(summary)
+    safe_metadata = _json_safe(metadata)
+    safe_quick_stats = _json_safe(quick_stats)
+
     analysis_dict = {
-        "metadata": metadata,
-        "quick_stats": quick_stats,
-        "summary": summary,
+        "metadata": safe_metadata,
+        "quick_stats": safe_quick_stats,
+        "summary": safe_summary,
         "reasoning": "\n".join(reasoning_log),
-        "advanced_physics_used": advanced_used,
+        "advanced_physics_used": bool(use_advanced and HAS_ADVANCED),
         "trajectories_csv": str(TRAJ_CSV_PATH) if TRAJ_CSV_PATH.exists() else None,
     }
 
