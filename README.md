@@ -14,6 +14,7 @@ The goal is to help design and diagnose confocal experiments (diffusion vs struc
 Clone the repo and create a virtual environment:
 
 git clone https://github.com/Abhishek-Gupta-GitHub/confocal_microscopy-copilot.git
+
 cd confocal_microscopy-copilot
 
 python -m venv .venv
