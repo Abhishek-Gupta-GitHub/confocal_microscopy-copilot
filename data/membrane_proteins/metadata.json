@@ -1,0 +1,16 @@
+{
+  "description": "Membrane proteins: Fast diffusing and blinking fluorescent spots in a single confocal slice.",
+  "shape_TZYX": [
+    12,
+    1,
+    64,
+    64
+  ],
+  "voxel_size_um": {
+    "z": 0.3,
+    "y": 0.1,
+    "x": 0.1
+  },
+  "frame_interval_s": 0.5,
+  "dtype": "uint16"
+}

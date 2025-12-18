@@ -1,0 +1,16 @@
+{
+  "description": "Soft-matter gel: Brownian tracer particles in a crowded viscoelastic matrix (short 4D stack).",
+  "shape_TZYX": [
+    8,
+    8,
+    64,
+    64
+  ],
+  "voxel_size_um": {
+    "z": 0.3,
+    "y": 0.1,
+    "x": 0.1
+  },
+  "frame_interval_s": 0.5,
+  "dtype": "uint16"
+}

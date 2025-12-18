@@ -1,0 +1,16 @@
+{
+  "description": "Colloidal monolayer: 2D Brownian motion of ~20 particles in a single focal plane.",
+  "shape_TZYX": [
+    10,
+    1,
+    64,
+    64
+  ],
+  "voxel_size_um": {
+    "z": 0.3,
+    "y": 0.1,
+    "x": 0.1
+  },
+  "frame_interval_s": 0.5,
+  "dtype": "uint16"
+}

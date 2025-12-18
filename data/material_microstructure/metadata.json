@@ -1,0 +1,16 @@
+{
+  "description": "Material microstructure: Static 3D grain-like intensity pattern (single time point, 3D only).",
+  "shape_TZYX": [
+    1,
+    16,
+    64,
+    64
+  ],
+  "voxel_size_um": {
+    "z": 0.3,
+    "y": 0.1,
+    "x": 0.1
+  },
+  "frame_interval_s": 0.5,
+  "dtype": "uint16"
+}
