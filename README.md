@@ -9,6 +9,112 @@ A digital‑twin–assisted copilot for 3D confocal particle tracking. It combin
 The goal is to help design and diagnose confocal experiments (diffusion vs structure, depth/bleaching/crowding biases, and “what‑if” scenarios).
 
 ---
+## Installation
+
+Clone the repo and create a virtual environment:
+
+git clone https://github.com/Abhishek-Gupta-GitHub/confocal_microscopy-copilot.git
+cd confocal_microscopy-copilot
+
+python -m venv .venv
+
+Windows:
+.venv\Scripts\activate
+
+Linux/macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+
+To ensure Gradio is available: pip install gradio
+
+## Running the Gradio UI
+
+From the project root (with the virtual environment activated):python ui_app.py 
+
+Gradio will print a line such as: Running on local URL: http://127.0.0.1:7860
+
+
+Open that URL in your browser.
+
+### UI workflow
+
+1. **Choose dataset**
+   - `example`: synthetic stack from the digital twin.
+   - `imagej_confocal`, `synthetic_gaussian`, `deeptrack_example`: example stacks (if present under `data/`).
+   - `own_dataset`: upload your own 3D/4D TIFF stack.
+
+2. **Limit frames**
+   - Use the “Max frames to use” slider to crop long movies (e.g. 60/100 frames) to speed up tracking and analysis.
+
+3. **Choose / write an analysis prompt**
+   - Pick a template in “Suggested prompts”, e.g.:
+     - “Analyze diffusion and comment on depth and bleaching.”
+     - “Quantify subdiffusion and identify a reliable MSD fit window.”
+   - Or select `Custom` and type your own question in the text box.
+
+4. **Run analysis**
+   - Click **“▶ Run analysis”**.
+   - The agents will:
+     - **Agent 1** – Planner: choose pipeline and initial parameters from metadata and quick SNR.
+     - **Agent 2** – Detection & Tracking: run Trackpy detection and linking on the cropped stack.
+     - **Agent 3** – Physics: compute MSD, α, D, and diagnostics (depth profile, bleaching, crowding).
+     - **Agent 4** – Explainer: produce a short explanation and suggestions.
+
+5. **Inspect results**
+   - **Copilot explanation** – human‑readable interpretation + next‑experiment suggestions.
+   - **Agent reasoning (debug view)** – concise log of what each agent decided (dataset choice, cropping, parameters, analysis steps).
+   - **MSD plot** – log–log MSD vs lag time.
+   - **Depth profile plot** – mean intensity vs z index.
+   - **Analysis summary (JSON)** – structured output usable in notebooks/code (available via file or state).
+
+6. **Download trajectories**
+   - Click **“Download trajectories (CSV)”** to get `results/trajectories_latest.csv`.
+   - Contains Trackpy‑style columns (`frame`, `x`, `y`, `particle`, …) for further custom analysis.
+
+7. **Ask follow‑up questions (no re‑analysis)**
+   - In “Follow‑up questions (no recompute)”, type a question about the last run (e.g. “How reliable is MSD at long times?”).
+   - Click **“Ask follow‑up”**.
+   - The explainer reuses the cached analysis summary (no detection/tracking/MSD recomputation) and returns an answer based on the previous run.
+
+---
+
+## Running the demo notebook
+
+To explore the pipeline step by step:
+
+1. Open `notebooks/main_demo.ipynb` in VS Code (Jupyter) or JupyterLab.
+2. Run cells from top to bottom:
+   - load or simulate a dataset,
+   - compute SNR and a `Plan`,
+   - run detection + tracking,
+   - compute MSD, α, D, and diagnostics,
+   - generate the textual explanation.
+
+On Google Colab, use the “Open in Colab” badge (if defined) pointing to `notebooks/main_demo.ipynb`:
+
+[![Open In Colab](https://colab.research.google.com/assets/(
+https://colab.research.google.com/github/Abhishek-Gupta-GitHub/confocal_microscopy-copilot/blob/main/notebooks/main_demo.ipynb
+)
+
+
+---
+
+## Extending the copilot
+
+- **Digital twin**  
+  Replace the basic Gaussian + attenuation + bleaching model with more realistic confocal optics and motion (e.g. depth‑dependent PSF, viscoelastic media).
+
+- **Detection & tracking**  
+  Integrate DeepTrack models or custom detection networks in `DetectionTrackingWorker` while keeping the same interface for trajectories.
+
+- **LLM explainer**  
+  Swap the dummy explainer in `chat_explainer.py` for a real LLM client and use the JSON summary as context to generate richer and more interactive explanations.
+
+- **Additional diagnostics**  
+  Add near‑wall MSD, cage‑relative MSD, heterogeneity metrics, or structure functions to `PhysicsAnalyst.summarize` and expose them in the UI.
+
+This structure is designed to be hackathon‑friendly while remaining a clean base for more advanced confocal copilot development.
 
 ## Repository structure
 
