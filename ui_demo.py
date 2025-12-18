@@ -195,41 +195,23 @@ def _run_full_analysis(
     stack, meta, label = _choose_dataset(dataset_choice, uploaded_file, max_frames)
     dataset_info = f"Dataset: {label}\nShape: {tuple(stack.shape)}"
 
-    # 1) Quick stats + plan
-    quick_stats = _orchestrator.compute_quick_stats(stack, meta)
+        # 1) Planning (planner agent)
+    # Use only the arguments that Orchestrator.make_plan actually supports.
+    # If you later extend it, you can expand this call.
+    try:
+        plan: Plan = _orchestrator.make_plan(analysis_prompt, meta)
+    except TypeError:
+        # Fallback: if Plan is not used or Orchestrator returns a dict
+        plan = _orchestrator.make_plan(analysis_prompt, meta)
 
-    quick_stats = _orchestrator.compute_quick_stats(stack, meta)
-
-    # Optional: ask the digital twin for parameter suggestions
-    twin_suggestion = None
-    if use_twin_recommend:
-        sample_config = getattr(config, "DEFAULT_SAMPLE_CONFIG", {
-            "domain": "colloidal_glass",
-            "volume_fraction": 0.45,
-            "particle_diameter_um": 1.0,
-        })
-        try:
-            # Most likely signature: (metadata, quick_stats, sample_config)
-            twin_suggestion = _twin.recommend_parameters(meta, quick_stats, sample_config)
-        except TypeError:
-            # If your DigitalTwin still has the older (meta, quick_stats) signature,
-            # fall back gracefully and ignore sample_config.
-            try:
-                twin_suggestion = _twin.recommend_parameters(meta, quick_stats)
-            except TypeError:
-                twin_suggestion = None
-
-
-
-    plan: Plan = _orchestrator.make_plan(
-        user_question=analysis_prompt,
-        metadata=meta,
-        quick_stats=quick_stats,
-        twin_suggestion=twin_suggestion,
-    )
 
     # 2) Detection + tracking
-    traj_df, quality = _detector_tracker.run(stack, plan)
+    result = _detector_tracker.run(stack, plan)
+    if isinstance(result, tuple):
+        traj_df, quality = result
+    else:
+        traj_df, quality = result, {}
+
 
     if traj_df is None or len(traj_df) == 0:
         explanation = (
@@ -258,7 +240,12 @@ def _run_full_analysis(
     # Add metadata to summary for the explainer
     summary["metadata"] = meta
     summary["quick_stats"] = quick_stats
-    summary["plan"] = plan.to_dict()
+        # Add plan in a JSON-friendly way
+    if hasattr(plan, "to_dict"):
+        summary["plan"] = plan.to_dict()
+    else:
+        summary["plan"] = dict(plan) if isinstance(plan, dict) else {"plan_repr": str(plan)}
+
     summary["quality"] = quality
 
     # Persist JSON summary
@@ -269,10 +256,11 @@ def _run_full_analysis(
 
     # 5) Agent log: concise reasoning trail
     log_lines = []
-    log_lines.append(f"Planner → pipeline_type: {plan.pipeline_type}")
-    log_lines.append(f"Planner → twin_used: {plan.twin_needed}")
-    log_lines.append(f"Planner → detection params: {plan.detection_params}")
-    log_lines.append(f"Planner → tracking params: {plan.tracking_params}")
+    log_lines.append(f"Planner → pipeline_type: {getattr(plan, 'pipeline_type', 'NA')}")
+    log_lines.append(f"Planner → twin_used: {getattr(plan, 'twin_needed', False)}")
+    log_lines.append(f"Planner → detection params: {getattr(plan, 'detection_params', {})}")
+    log_lines.append(f"Planner → tracking params: {getattr(plan, 'tracking_params', {})}")
+
     log_lines.append(f"DetectionTracking → n_tracks: {quality.get('n_tracks', 'NA')}")
     log_lines.append(
         f"Physics → alpha: {summary.get('alpha', 'NA')}, "
@@ -382,10 +370,10 @@ def build_ui() -> gr.Blocks:
                     info="Crop long movies for faster tracking.",
                 )
 
-                use_twin_recommend = gr.Checkbox(
-                    value=True,
-                    label="Use digital twin to suggest parameters",
-                )
+                # use_twin_recommend = gr.Checkbox(
+                #     value=True,
+                #     label="Use digital twin to suggest parameters",
+                # )
 
                 use_advanced = gr.Checkbox(
                     value=HAS_ADVANCED,
@@ -489,7 +477,7 @@ def build_ui() -> gr.Blocks:
                         max_frames=int(max_fr),
                         analysis_prompt=prompt,
                         use_advanced=use_adv,
-                        use_twin_recommend=use_twin,
+                        #use_twin_recommend=use_twin,
                     )
 
                     traj_file = TRAJ_CSV_PATH if TRAJ_CSV_PATH.exists() else None
@@ -511,7 +499,7 @@ def build_ui() -> gr.Blocks:
                         max_frames,
                         analysis_prompt,
                         use_advanced,
-                        use_twin_recommend,
+                        #use_twin_recommend,
                     ],
                     outputs=[
                         explanation_out,
