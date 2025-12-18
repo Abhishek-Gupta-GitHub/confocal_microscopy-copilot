@@ -1,12 +1,26 @@
 {
-  "description": "Synthetic 2D+t Gaussian-blob particle dataset (Brownian motion).",
-  "source": "Generated locally using NumPy (no DeepTrack generator).",
-  "url": "https://soft-matter.github.io/trackpy",
-  "pixel_size_xy_um": 0.1,
-  "z_step_um": null,
+  "voxel_size_um": [
+    0.1,
+    0.1,
+    0.2
+  ],
+  "img_shape_xyz": [
+    32,
+    64,
+    64
+  ],
+  "psf_sigma_xyz_vox": [
+    2.0,
+    1.0,
+    1.0
+  ],
   "frame_interval_s": 0.1,
-  "approx_particle_diameter_um": 0.5,
-  "sample_type": "synthetic Brownian particles (2D+t)",
-  "dimensions": "2D+t",
-  "notes": "Designed to be similar in spirit to Trackpy sample videos."
+  "noise_std": 5.0,
+  "z_att_um": 50.0,
+  "bleach_tau_s": 80.0,
+  "box_size_um": [
+    30.0,
+    30.0,
+    30.0
+  ]
 }

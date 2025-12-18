@@ -6,12 +6,21 @@ class PhysicsAnalyst:
         pass
 
     def compute_msd_alpha_D(self, trajectories, frame_interval_s):
-        if trajectories.empty:
+        if trajectories is None or trajectories.empty:
             return None, np.nan, np.nan
 
-        msd_series = tp.motion.msd(
-            trajectories, mpp=1.0, fps=1.0 / frame_interval_s
-        )
+        # Ensure unique (particle, frame) pairs to avoid msd_gaps error
+        traj = trajectories.sort_values(["particle", "frame"]).copy()
+        traj = traj.drop_duplicates(subset=["particle", "frame"])
+
+        try:
+            msd_series = tp.motion.msd(
+                traj, mpp=1.0, fps=1.0 / frame_interval_s
+            )
+        except Exception as e:
+            print("MSD computation failed:", e)
+            return None, np.nan, np.nan
+
         taus = msd_series.index.values
         msd_vals = msd_series["msd"].values
         mask = (taus > 0) & np.isfinite(msd_vals)

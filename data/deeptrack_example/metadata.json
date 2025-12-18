@@ -1,0 +1,26 @@
+{
+  "voxel_size_um": [
+    0.1,
+    0.1,
+    0.2
+  ],
+  "img_shape_xyz": [
+    32,
+    64,
+    64
+  ],
+  "psf_sigma_xyz_vox": [
+    2.0,
+    1.0,
+    1.0
+  ],
+  "frame_interval_s": 0.1,
+  "noise_std": 5.0,
+  "z_att_um": 50.0,
+  "bleach_tau_s": 80.0,
+  "box_size_um": [
+    30.0,
+    30.0,
+    30.0
+  ]
+}
