@@ -239,21 +239,3 @@ https://colab.research.google.com/github/Abhishek-Gupta-GitHub/confocal_microsco
 )
 
 
----
-
-## Extending the copilot
-
-- **Digital twin**  
-  Replace the basic Gaussian + attenuation + bleaching model with more realistic confocal optics and motion (e.g. depth‑dependent PSF, viscoelastic media).
-
-- **Detection & tracking**  
-  Integrate DeepTrack models or custom detection networks in `DetectionTrackingWorker` while keeping the same interface for trajectories.
-
-- **LLM explainer**  
-  Swap the dummy explainer in `chat_explainer.py` for a real LLM client and use the JSON summary as context to generate richer and more interactive explanations.
-
-- **Additional diagnostics**  
-  Add near‑wall MSD, cage‑relative MSD, heterogeneity metrics, or structure functions to `PhysicsAnalyst.summarize` and expose them in the UI.
-
-This structure is designed to be hackathon‑friendly while remaining a clean base for more advanced confocal copilot development.
-
