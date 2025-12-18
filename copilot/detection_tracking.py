@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import trackpy as tp
+from copilot.trajectory_schema import Trajectory 
 
 class DetectionTrackingWorker:
     def __init__(self):
@@ -93,3 +94,82 @@ class DetectionTrackingWorker:
                 "tracking": plan.tracking_params_initial,
             },
         }
+    def run_with_deeptrack(
+        self,
+        stack_3d: np.ndarray,
+        plan,
+    ) -> dict:
+        """
+        Use DeepTrack for feature finding (2D+t projection),
+        then Trackpy for linking, then convert to Trajectory list.
+        """
+        # project to 2D+t (same as you already do)
+        stack_2d_t = self._project_to_2d(stack_3d)  # shape (T, H, W)
+
+        dt_detector = DeepTrackDetector(DeepTrackConfig(image_shape=stack_2d_t.shape[1:]))
+        det_result = dt_detector.detect_2d_t(
+            stack_2d_t,
+            threshold=plan.detection_params_initial.get("threshold_rel", 0.5),
+        )
+        positions = det_result["positions"]
+
+        if positions.size == 0:
+            return {
+                "trajectories": [],
+                "quality_metrics": {
+                    "n_tracks": 0,
+                    "detections_per_frame": {},
+                    "backend": det_result["meta"]["backend"],
+                },
+            }
+
+        # Convert to DataFrame expected by trackpy: columns ['frame','x','y']
+        df = pd.DataFrame(
+            {
+                "frame": positions[:, 0].astype(int),
+                "y": positions[:, 1],
+                "x": positions[:, 2],
+            }
+        )
+
+        linked = tp.link_df(
+            df,
+            search_range=plan.tracking_params_initial.get("search_range", 5),
+            memory=plan.tracking_params_initial.get("memory", 2),
+        )
+
+        trajectories = self._df_to_trajectories(linked, stack_3d.shape)
+
+        detections_per_frame = df["frame"].value_counts().sort_index().to_dict()
+        quality_metrics = {
+            "n_tracks": int(linked["particle"].nunique()),
+            "detections_per_frame": detections_per_frame,
+            "backend": det_result["meta"]["backend"],
+        }
+
+        return {
+            "trajectories": trajectories,
+            "quality_metrics": quality_metrics,
+        }
+
+    def _df_to_trajectories(self, linked: pd.DataFrame, stack_shape) -> list[Trajectory]:
+        T, Z, H, W = stack_shape
+        trajectories: list[Trajectory] = []
+        for pid, grp in linked.groupby("particle"):
+            grp = grp.sort_values("frame")
+            times = grp["frame"].to_numpy()
+            xs = grp["x"].to_numpy()
+            ys = grp["y"].to_numpy()
+            for t, x, y in zip(times, xs, ys):
+                trajectories.append(
+                    Trajectory(
+                        id=int(pid),
+                        t=float(t),
+                        x=float(x),
+                        y=float(y),
+                        z=None,
+                        frame=int(t),
+                        meta={},
+                    )
+                )
+        return trajectories
