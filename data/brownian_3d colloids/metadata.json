@@ -1,0 +1,39 @@
+{
+  "voxel_size_um": [
+    0.1,
+    0.1,
+    0.2
+  ],
+  "img_shape_xyz": [
+    32,
+    64,
+    64
+  ],
+  "psf_sigma_xyz_vox": [
+    2.0,
+    1.0,
+    1.0
+  ],
+  "frame_interval_s": 0.1,
+  "noise_std": 5.0,
+  "z_att_um": 50.0,
+  "bleach_tau_s": 80.0,
+  "box_size_um": [
+    30.0,
+    30.0,
+    30.0
+  ],
+  "n_frames": 100,
+  "pixel_size_um": 0.1,
+  "z_step_um": 0.2,
+  "dt_s": 0.1,
+  "description": "3D Brownian colloidal spheres (solid 3D particles with tunable radius).",
+  "diffusion_coeff_um2_s": 0.05,
+  "n_particles": 30,
+  "box_size_xyz": [
+    64,
+    64,
+    32
+  ],
+  "sphere_radius_px": 3.0
+}
