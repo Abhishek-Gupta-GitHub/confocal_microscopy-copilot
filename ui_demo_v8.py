@@ -1,7 +1,9 @@
-# ui_demo_v7.py (conceptual update of ui_demo_v6.py)
+# ui_demo_v7.py (updated)
+
 from pathlib import Path
 from typing import Dict, Any, Tuple
 from typing import Any
+
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,9 +33,6 @@ except ImportError:
     PhysicsAnalystAdvanced = None
     HAS_ADVANCED = False
 
-
-from pathlib import Path
-
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 RESULTS_DIR = ROOT / "results"
@@ -54,8 +53,9 @@ _physics_advanced = PhysicsAnalystAdvanced() if HAS_ADVANCED else None
 _explainer = ChatExplainer(llm_client=None)
 
 # ------------------------------------------------------------------
-# Sample datasets, with NEW golden dataset
+# Sample datasets
 # ------------------------------------------------------------------
+
 SAMPLE_DATASETS = {
     "brownian_3d colloids": {
         "folder": "brownian_3d colloids",
@@ -116,8 +116,8 @@ def load_user_stack(uploaded_file):
 
 # ------------------------------------------------------------------
 # Always-on denoising for detection
-# (no longer exposed as a checkbox)
 # ------------------------------------------------------------------
+
 def denoise_stack(stack, method="median", strength=1):
     arr = stack.astype(np.float32)
     if method == "median":
@@ -149,14 +149,15 @@ def _choose_physics_engine(use_advanced: bool):
     return _physics_basic, False
 
 
-# Plot helper functions: unchanged from v6 (msd, depth, rdf, montages, trajectories)
-# ...
+# ------------------------------------------------------------------
+# Manual MSD and RDF
+# ------------------------------------------------------------------
 
 def compute_msd_manual(trajectories: pd.DataFrame, max_lag: int = None):
     """
     Compute MSD manually from a trajectories DataFrame with columns
     ['frame', 'particle', 'x', 'y'].
-    Returns a dict with 'taus' and 'values' compatible with makemsdplot.
+    Returns a dict with 'taus' and 'values' compatible with make_msd_plot.
     """
     if trajectories is None or len(trajectories) == 0:
         return {"taus": np.array([]), "values": np.array([])}
@@ -183,8 +184,10 @@ def compute_msd_manual(trajectories: pd.DataFrame, max_lag: int = None):
         # join frame t and t+lag on particle, inner join ensures only valid pairs
         df_lag = pos.copy()
         df_lag.index = pd.MultiIndex.from_arrays(
-            [df_lag.index.get_level_values("frame") - lag,
-             df_lag.index.get_level_values("particle")],
+            [
+                df_lag.index.get_level_values("frame") - lag,
+                df_lag.index.get_level_values("particle"),
+            ],
             names=["frame", "particle"],
         )
         joined = pos.join(df_lag, lsuffix="_t", rsuffix="_tlag", how="inner")
@@ -208,7 +211,6 @@ def compute_rdf_manual(
 ) -> Dict[str, np.ndarray]:
     """
     Simple 2D RDF g(r) from particle positions (x,y) per frame.
-
     Returns dict with 'r' and 'g_r' that make_rdf_plot can use directly.
     """
     if trajectories is None or len(trajectories) == 0:
@@ -218,9 +220,7 @@ def compute_rdf_manual(
     if not needed_cols.issubset(trajectories.columns):
         return {"r": np.array([]), "g_r": np.array([])}
 
-    # Use only x,y for now (2D RDF)
     df = trajectories[["frame", "x", "y"]].copy()
-    # Estimate overall box from min/max coordinates
     x_min, x_max = df["x"].min(), df["x"].max()
     y_min, y_max = df["y"].min(), df["y"].max()
     Lx = float(x_max - x_min)
@@ -230,7 +230,6 @@ def compute_rdf_manual(
 
     area = Lx * Ly
 
-    # Default r_max from box size if not given
     if r_max is None:
         r_max = 0.5 * min(Lx, Ly)
 
@@ -239,29 +238,24 @@ def compute_rdf_manual(
     g_r_accum = np.zeros_like(r_centers, dtype=float)
     n_frames_used = 0
 
-    # Loop over frames
     for frame_id, g in df.groupby("frame"):
         coords = g[["x", "y"]].to_numpy()
         n = coords.shape[0]
         if n < 2:
             continue
 
-        # Pairwise distances
         dx = coords[:, 0][:, None] - coords[:, 0][None, :]
         dy = coords[:, 1][:, None] - coords[:, 1][None, :]
         r = np.sqrt(dx * dx + dy * dy)
 
-        # Upper triangle only (i<j), exclude self-distances
         iu = np.triu_indices(n, k=1)
         r_ij = r[iu]
 
-        # Histogram
         hist, _ = np.histogram(r_ij, bins=r_edges)
 
-        # Ideal gas expected counts in each shell
         rho = n / area
         shell_areas = np.pi * (r_edges[1:] ** 2 - r_edges[:-1] ** 2)
-        expected = rho * shell_areas * n  # number of pairs in ideal gas
+        expected = rho * shell_areas * n
 
         with np.errstate(divide="ignore", invalid="ignore"):
             g_frame = hist / expected
@@ -274,8 +268,20 @@ def compute_rdf_manual(
         return {"r": np.array([]), "g_r": np.array([])}
 
     g_r = g_r_accum / n_frames_used
+    # Optional post-normalization: force average in tail to 1
+    # (e.g. last 20% of bins)
+    tail_start = int(0.8 * g_r.size)
+    if tail_start < g_r.size:
+        tail_mean = np.mean(g_r[tail_start:])
+        if tail_mean > 0:
+            g_r = g_r / tail_mean
+
     return {"r": r_centers, "g_r": g_r}
 
+
+# ------------------------------------------------------------------
+# Plot helpers
+# ------------------------------------------------------------------
 
 def make_msd_plot(summary: Dict[str, Any]):
     msd = summary.get("msd")
@@ -285,13 +291,34 @@ def make_msd_plot(summary: Dict[str, Any]):
     vals = np.array(msd.get("values", []))
     if len(taus) == 0 or len(vals) == 0:
         return None
+
+    # Keep only positive values for loglog
+    mask = (taus > 0) & (vals > 0)
+    if not np.any(mask):
+        return None
+    taus = taus[mask]
+    vals = vals[mask]
+
     fig, ax = plt.subplots()
-    ax.loglog(taus, vals, "o-")
+    ax.loglog(taus, vals, "o-", label="MSD")
+
+    # Add reference line with slope 1: MSD ~ t^1
+    # Anchor at median tau with MSD value there
+    tau_ref = np.median(taus)
+    msd_ref = np.interp(tau_ref, taus, vals)
+
+    # Build line with same proportionality at tau_ref
+    tau_line = np.array([taus.min(), taus.max()])
+    msd_line = msd_ref * (tau_line / tau_ref)  # slope 1 on log-log
+    ax.loglog(tau_line, msd_line, "--", color="gray", label="slope 1")
+
     ax.set_xlabel("lag time τ [s]")
     ax.set_ylabel("MSD")
     ax.set_title("Mean-squared displacement")
+    ax.legend()
     fig.tight_layout()
     return fig
+
 
 
 def make_depth_plot(summary: Dict[str, Any]):
@@ -374,31 +401,24 @@ def make_annotated_montage(stack_3d, trajectories, n_frames: int = 3):
     fig.tight_layout()
     return fig
 
+
 def relabel_segments_unique(df: pd.DataFrame, max_frame_gap: int = 1) -> pd.DataFrame:
     """Ensure each contiguous segment gets a unique particle ID."""
     if df is None or len(df) == 0:
         return df
-
     df = df.sort_values(["particle", "frame"]).reset_index(drop=True)
-
     new_ids = np.empty(len(df), dtype=int)
     next_id = 0
-
     for pid, g in df.groupby("particle", sort=False):
         frames = g["frame"].to_numpy()
-        # start of a new segment: first frame or a gap > max_frame_gap
         segment_starts = np.zeros(len(frames), dtype=bool)
         segment_starts[0] = True
         segment_starts[1:] = (frames[1:] - frames[:-1]) > max_frame_gap
-
-        # cumulative count of segments within this original pid
         seg_labels = np.cumsum(segment_starts)
-
         for seg in np.unique(seg_labels):
             idx_seg = g.index[seg_labels == seg]
             new_ids[idx_seg] = next_id
             next_id += 1
-
     df = df.copy()
     df["particle"] = new_ids
     return df
@@ -419,13 +439,17 @@ def make_trajectory_plot(trajectories):
     fig.tight_layout()
     return fig
 
+
+# ------------------------------------------------------------------
+# Detection & tracking
+# ------------------------------------------------------------------
+
 def run_detection_tracking(stack_3d, plan, backend: str):
     # Backends:
     # - "Trackpy (standard)": standard detection + linking
     # - "DeepTrack (refined)": placeholder for DeepTrack-based localisation + linking
     if backend == "DeepTrack (refined)":
-        # For now keep a hook here; still fall back to default detection.
-        # In future: call DeepTrack pipeline, then link with trackpy or DeepTrack.
+        # Placeholder: still fall back to default detection for now
         pass
 
     dt_result = _detector.run(stack_3d, plan)
@@ -445,6 +469,10 @@ def run_detection_tracking(stack_3d, plan, backend: str):
     return trajectories, quality
 
 
+# ------------------------------------------------------------------
+# Pipeline
+# ------------------------------------------------------------------
+
 import warnings
 
 warnings.filterwarnings(
@@ -461,14 +489,17 @@ def run_pipeline(
     uploaded_file,
     max_frames,
     use_advanced,
-    do_msd,
-    manual_msd,
+    msd_mode,
     do_depth,
     do_structure,
     do_traj_plot,
-    request_download_report,  # NEW: if True, produce a CSV/report path
+    request_download_report,
 ):
     reasoning_log = []
+
+    # Derive MSD flags from mode
+    do_msd = msd_mode != "No MSD"
+    use_manual_msd = msd_mode == "MSD (manual, robust)"
 
     # Save last run params for refine
     LAST_RUN_PARAMS["dataset_choice"] = dataset_choice
@@ -479,6 +510,7 @@ def run_pipeline(
     LAST_RUN_PARAMS["max_frames"] = max_frames
     LAST_RUN_PARAMS["use_advanced"] = use_advanced
     LAST_RUN_PARAMS["do_msd"] = do_msd
+    LAST_RUN_PARAMS["use_manual_msd"] = use_manual_msd
     LAST_RUN_PARAMS["do_depth"] = do_depth
     LAST_RUN_PARAMS["do_structure"] = do_structure
     LAST_RUN_PARAMS["do_traj_plot"] = do_traj_plot
@@ -501,9 +533,8 @@ def run_pipeline(
                 gr.update(visible=False),
                 gr.update(visible=False),
                 gr.update(visible=False),
-                None,  # NEW: no downloadable file
+                None,
             )
-
         stack_3d, metadata = load_user_stack(uploaded_file)
         dataset_used = f"user file: {Path(uploaded_file.name).name}"
         reasoning_log.append("Using user-uploaded dataset.")
@@ -518,7 +549,7 @@ def run_pipeline(
     # Raw montage
     raw_fig = make_raw_frame_montage(stack_3d)
 
-    # Always denoise before detection
+    # Denoise
     stack_for_detection = denoise_stack(stack_3d, method="median", strength=1)
     reasoning_log.append("Applied median denoising before detection (always on).")
 
@@ -547,7 +578,6 @@ def run_pipeline(
         prompt = preset_prompts.get(
             analysis_preset, "Describe the main physics in this dataset."
         )
-
     reasoning_log.append(f"Analysis preset: {analysis_preset}")
     reasoning_log.append(f"Tracking backend: {tracking_backend}")
     reasoning_log.append(f"LLM backend: {llm_backend}")
@@ -559,12 +589,12 @@ def run_pipeline(
         plan.detection_params_initial["max_sigma"] = 3
     if hasattr(plan, "tracking_params_initial"):
         plan.tracking_params_initial["search_range"] = 3.0
-
     reasoning_log.append(f"Planner pipeline='{getattr(plan, 'pipeline_type', 'NA')}'.")
 
     # Detection & tracking
-    trajectories, quality = run_detection_tracking(stack_for_detection, plan, tracking_backend)
-
+    trajectories, quality = run_detection_tracking(
+        stack_for_detection, plan, tracking_backend
+    )
     if trajectories is None or len(trajectories) == 0:
         warning = (
             f"⚠️ No trajectories detected for {dataset_used} "
@@ -579,8 +609,11 @@ def run_pipeline(
         safe_summary = _json_safe(summary)
         save_json(ANALYSIS_SUMMARY_PATH, safe_summary)
         annotated_fig = None
-        downloadable = TRAJ_CSV_PATH if (request_download_report and TRAJ_CSV_PATH.exists()) else None
-
+        downloadable = (
+            TRAJ_CSV_PATH
+            if (request_download_report and TRAJ_CSV_PATH.exists())
+            else None
+        )
         return (
             warning,
             {"summary": safe_summary},
@@ -600,29 +633,32 @@ def run_pipeline(
     physics_engine, advanced_used = _choose_physics_engine(use_advanced)
     summary = physics_engine.summarize(trajectories, stack_for_detection, metadata)
 
+    # MSD
     if not do_msd:
         summary.pop("msd", None)
-    else:
-        if manual_msd:
-            # recompute MSD in a robust way, ignore msd_gaps
-            manual_msd = compute_msd_manual(trajectories)
-            summary["msd"] = manual_msd
+    elif use_manual_msd:
+        summary["msd"] = compute_msd_manual(trajectories)
 
+    # Depth
     if not do_depth:
         summary.get("diagnostics", {}).pop("depth_profile_mean_intensity", None)
+
+    # Structure / RDF (manual RDF overwrite)
     if not do_structure:
         summary.pop("structure", None)
+    else:
+        summary.setdefault("structure", {})
+        summary["structure"]["rdf"] = compute_rdf_manual(trajectories)
 
     summary["metadata"] = metadata
     summary["quick_stats"] = quick_stats
     summary["quality"] = quality
+
     safe_summary = _json_safe(summary)
     save_json(ANALYSIS_SUMMARY_PATH, safe_summary)
-
-
     reasoning_log.append(f"Physics analysis complete. Advanced={advanced_used}.")
 
-    # LLM backend selection: here you'd plug your preferred modern model
+    # LLM backend
     explanation = _explainer.explain(prompt, safe_summary)
     reasoning_log.append("Generated explanation via ChatExplainer (modern LLM backend).")
 
@@ -645,7 +681,6 @@ def run_pipeline(
     depth_fig = make_depth_plot(summary) if do_depth else None
     rdf_fig = make_rdf_plot(summary) if do_structure else None
 
-    safe_summary = _json_safe(summary)
     analysis_dict = {
         "summary": safe_summary,
         "reasoning": "\n".join(reasoning_log),
@@ -653,10 +688,8 @@ def run_pipeline(
         "trajectories_csv": str(TRAJ_CSV_PATH) if TRAJ_CSV_PATH.exists() else None,
         "llm_backend": llm_backend,
     }
-
-    # NEW: suggested follow‑up question for the user
     analysis_dict["suggested_followup"] = (
-        "For example: 'Compare diffusion coefficients in different z‑slices' "
+        "For example: 'Compare diffusion coefficients in different z-slices' "
         "or 'Explain possible sources of subdiffusive behavior'."
     )
 
@@ -665,8 +698,9 @@ def run_pipeline(
             return gr.update(visible=False, value=None)
         return gr.update(visible=True, value=fig)
 
-    # NEW: optional download – only if requested by user
-    downloadable = TRAJ_CSV_PATH if (request_download_report and TRAJ_CSV_PATH.exists()) else None
+    downloadable = (
+        TRAJ_CSV_PATH if (request_download_report and TRAJ_CSV_PATH.exists()) else None
+    )
 
     return (
         text_info,
@@ -682,21 +716,46 @@ def run_pipeline(
 
 
 # ------------------------------------------------------------------
-# UI wiring (check boxes unticked by default, optional download)
+# UI helpers
+# ------------------------------------------------------------------
+
+def _toggle_custom_prompt(preset: str):
+    return gr.update(visible=(preset == "Custom"))
+
+
+def _toggle_select_all(all_on: bool, msd_mode_current: str,
+                       do_depth_current: bool,
+                       do_structure_current: bool,
+                       do_traj_current: bool):
+    if all_on:
+        return (
+            "MSD (standard, uses msd_gaps)",
+            True,
+            True,
+            True,
+        )
+    return (
+        msd_mode_current,
+        False,
+        False,
+        False,
+    )
+
+
+# ------------------------------------------------------------------
+# UI wiring
 # ------------------------------------------------------------------
 
 custom_css = """
 * {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-
 .gradio-container {
   max-width: 100% !important;
   width: 100% !important;
   margin: 0 auto;
   padding: 1rem;
 }
-
 #title_block {
   margin-bottom: 1.5rem;
 }
@@ -705,23 +764,18 @@ custom_css = """
 with gr.Blocks(css=custom_css) as demo:
     gr.Markdown(
         """
-<div style="text-align: center;">
-  <h2>Confocal microscopy copilot</h2>
-  <p>
-    End‑to‑end assistant for noisy confocal stacks:
-  </p>
-        The app denoises, tracks with Trackpy by default, runs physics analysis,
-        and uses a modern LLM for natural-language explanations.
+End‑to‑end assistant for noisy confocal stacks:
+The app denoises, tracks with Trackpy by default, runs physics analysis,
+and uses a modern LLM for natural-language explanations.
         """,
         elem_id="title_block",
     )
 
     with gr.Row():
         with gr.Column(scale=1):
-            
             dataset_choice = gr.Dropdown(
                 choices=list(SAMPLE_DATASETS.keys()) + ["own_dataset"],
-                value="brownian_3d colloids",   # default to Brownian synthetic data
+                value="brownian_3d colloids",
                 label="Dataset",
             )
             dataset_info = gr.Markdown(
@@ -746,10 +800,21 @@ with gr.Blocks(css=custom_css) as demo:
                 ],
                 value="Full analysis",
             )
+
+            custom_info = gr.Markdown(
+                value=(
+                    "Tip: choose **Custom** in the analysis preset to "
+                    "enable the custom physics prompt below."
+                )
+            )
+
             custom_prompt = gr.Textbox(
                 label="Custom physics prompt (for LLM)",
-                placeholder="Describe the motion, compare diffusion in different regions, etc.",
+                placeholder=(
+                    "Describe the motion, compare diffusion in different regions, etc."
+                ),
                 lines=4,
+                visible=False,
             )
 
             tracking_backend = gr.Radio(
@@ -760,7 +825,6 @@ with gr.Blocks(css=custom_css) as demo:
                 ],
                 value="Trackpy (standard)",
             )
-
             llm_backend = gr.Dropdown(
                 label="LLM backend",
                 choices=[
@@ -771,7 +835,6 @@ with gr.Blocks(css=custom_css) as demo:
                 value="openai_gpt4o",
                 info="Choose which LLM to use for explanations.",
             )
-
             max_frames = gr.Slider(
                 label="Max frames to analyze",
                 minimum=10,
@@ -779,23 +842,38 @@ with gr.Blocks(css=custom_css) as demo:
                 step=10,
                 value=60,
             )
-
             use_advanced = gr.Checkbox(
                 label="Use advanced physics module (if available)",
                 value=False,
             )
 
-            # Default: all analysis options unticked (to save time),
-            # but still allow fine control over which physics plots to compute.
-            do_msd = gr.Checkbox(label="Compute MSD", value=False)
-            manual_msd = gr.Checkbox(
-                label="Use manual MSD (ignore gaps check)",
-                value=False,
-                info="Slower but robust; avoids msd_gaps strict-gap exception."
+            msd_mode = gr.Radio(
+                label="MSD mode",
+                choices=[
+                    "No MSD",
+                    "MSD (standard, uses msd_gaps)",
+                    "MSD (manual, robust)",
+                ],
+                value="No MSD",
             )
-            do_depth = gr.Checkbox(label="Compute depth/bleaching profile", value=False)
-            do_structure = gr.Checkbox(label="Compute RDF (structure)", value=False)
-            do_traj_plot = gr.Checkbox(label="Plot trajectories", value=False)
+
+            do_depth = gr.Checkbox(
+                label="Compute depth/bleaching profile",
+                value=False,
+            )
+            do_structure = gr.Checkbox(
+                label="Compute RDF (structure)",
+                value=False,
+            )
+            do_traj_plot = gr.Checkbox(
+                label="Plot trajectories",
+                value=False,
+            )
+
+            select_all = gr.Checkbox(
+                label="Select all analyses (MSD, depth, RDF, trajectories)",
+                value=False,
+            )
 
             request_download_report = gr.Checkbox(
                 label="Prepare CSV/report for download (optional)",
@@ -805,8 +883,6 @@ with gr.Blocks(css=custom_css) as demo:
             run_btn = gr.Button("Run analysis", variant="primary")
 
         with gr.Column(scale=2):
-            
-
             with gr.Tab("Montages"):
                 with gr.Row():
                     raw_plot = gr.Plot(label="Raw", visible=True)
@@ -821,9 +897,11 @@ with gr.Blocks(css=custom_css) as demo:
                 rdf_plot = gr.Plot(visible=True)
 
             text_out = gr.Markdown(label="Analysis summary & explanation")
-            analysis_json = gr.JSON(label="Analysis details (JSON)", visible=True)
+            analysis_json = gr.JSON(
+                label="Analysis details (JSON)",
+                visible=True,
+            )
 
-                # NEW: simple feedback controls
             feedback = gr.Radio(
                 label="Was this analysis useful?",
                 choices=["👍 Yes", "👎 Not really"],
@@ -835,12 +913,24 @@ with gr.Blocks(css=custom_css) as demo:
                 lines=2,
             )
 
-            # NEW: download button – file path returned from run_pipeline
             download_btn = gr.DownloadButton(
                 label="Download latest trajectories CSV/report",
                 value=None,
                 visible=True,
             )
+
+    # Interactions
+    analysis_preset.change(
+        fn=_toggle_custom_prompt,
+        inputs=[analysis_preset],
+        outputs=[custom_prompt],
+    )
+
+    select_all.change(
+        fn=_toggle_select_all,
+        inputs=[select_all, msd_mode, do_depth, do_structure, do_traj_plot],
+        outputs=[msd_mode, do_depth, do_structure, do_traj_plot],
+    )
 
     run_btn.click(
         fn=run_pipeline,
@@ -853,8 +943,7 @@ with gr.Blocks(css=custom_css) as demo:
             uploaded_file,
             max_frames,
             use_advanced,
-            do_msd,
-            manual_msd,
+            msd_mode,
             do_depth,
             do_structure,
             do_traj_plot,
@@ -869,11 +958,9 @@ with gr.Blocks(css=custom_css) as demo:
             msd_plot,
             depth_plot,
             rdf_plot,
-            download_btn,  # receives a string path or None
+            download_btn,
         ],
     )
 
-
 if __name__ == "__main__":
     demo.launch(theme=gr.themes.Soft(), css=custom_css)
-
