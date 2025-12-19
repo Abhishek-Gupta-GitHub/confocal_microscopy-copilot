@@ -1,28 +1,49 @@
+# copilot/chat_explainer.py
+
 import json
-from textwrap import dedent
+from dataclasses import dataclass
+from typing import Dict
 
+@dataclass
 class ChatExplainer:
-    def __init__(self, llm_client=None):
-        self.llm = llm_client
+    client: object  # your LLM client (OpenAI, Groq, etc.)
+    model: str = "gpt-4o-mini"
 
-    def build_prompt(self, user_question: str, summary: dict) -> str:
-        return dedent(f"""
-        You are a soft-matter postdoc helping with confocal particle tracking.
+    def build_prompt(self, focus_question: str, summary: Dict) -> str:
+        summary_json = json.dumps(summary, indent=2)
 
-        The user asked:
-        \"\"\"{user_question}\"\"\".
+        return f"""
+You are a microscopy and soft-matter physicist.
 
-        Here is a JSON summary of the analysis:
-        \"\"\"{json.dumps(summary, indent=2)}\"\"\".
+Task:
+- Interpret the following analysis summary from a 3D confocal particle-tracking experiment.
+- Write a concise, scientifically accurate explanation (2–4 short paragraphs).
+- Comment on: signal quality (SNR), tracking quality, MSD (diffusive vs sub/superdiffusive),
+  depth/bleaching trends, and any structure (RDF / crowding metrics).
+- Use approximate quantitative numbers when present (e.g. D, alpha, plateau MSD, peaks in g(r)).
+- Do not restate JSON keys; synthesise and interpret the physics.
 
-        Task:
-        - Explain MSD, alpha, and D in 1–2 paragraphs.
-        - Comment on depth, bleaching, and crowding diagnostics.
-        - Give 3 concrete next-experiment suggestions.
-        - Do not invent numbers; only use values present in the JSON.
+User focus:
+{focus_question or "Describe the main physics in this dataset for a soft-matter audience."}
 
-        Answer in clear, technical prose.
-        """)
+Analysis summary (JSON, already pre-processed):
+{summary_json}
+"""
+    def explain(self, focus_question: str, summary: Dict) -> str:
+        prompt = self.build_prompt(focus_question, summary)
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system",
+                 "content": "You are a concise, rigorous microscopy and soft-matter physics explainer."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=600,
+        )
+        return resp.choices[0].message.content.strip()
+
+
 
     def call_llm(self, prompt: str) -> str:
         if self.llm is None:
