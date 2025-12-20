@@ -1,146 +1,184 @@
-## Confocal Microscopy Copilot
+## MicrosCopilot: Confocal Microscopy Copilot
 
-Confocal Microscopy Copilot is a **Python** toolkit and user interface for loading, exploring and processing confocal microscopy image stacks, with optional integration of large language models (LLMs) for assisted analysis and documentation.  
+MicrosCopilot is a **physics‑aware framework and GUI** for quantitative confocal microscopy. It helps turn raw 3D/4D confocal stacks into interpretable physical metrics such as mean‑squared displacement (MSD), anomalous diffusion exponents, and imaging diagnostics (bleaching, depth‑loss, crowding) in a transparent, reproducible way. [file:70]
 
-The main entry point for end users is `ui_demo_final.py`, which starts an interactive GUI.
-
----
-
-## Features
-
-- Load common confocal microscopy image formats (e.g. multi‑channel and z‑stack images).  
-- Basic preprocessing utilities (normalization, cropping, projections, etc.).  
-- Interactive GUI for browsing slices, channels and simple analysis workflows via `ui_demo_final.py`.  
-- Optional LLM integration (e.g. OpenAI, Anthropic, etc.) for:
-  - Natural‑language description of images or ROIs  
-  - Drafting analysis notes, methods text or processing recipes  
-  - Turning GUI actions into reproducible code snippets  
+The central idea is to combine a configurable digital twin, a modular analysis pipeline, and an interactive interface so that experimentalists can analyse, debug, and interpret confocal experiments without relying on opaque black‑box tools. [file:70]
 
 ---
 
-## Installation
+## Quick start: demo UI (`ui_demo_final.py`)
 
 1. **Clone the repository**
 
 ```python
 git clone https://github.com/Abhishek-Gupta-GitHub/confocal_microscopy-copilot.git
 cd confocal_microscopy-copilot
+
 ```
 
-2. **Create and activate a virtual environment** (recommended)
+2. **(Optional) create and activate a virtual environment**
+
 ```python
 python -m venv .venv
-source .venv/bin/activate # on Linux/macOS
+source .venv/bin/activate # Linux/macOS
 
-.venv\Scripts\activate # on Windows
+.venv\Scripts\activate # Windows
 ```
 
-3. **Install Python dependencies**
+3. **Install dependencies**
+
+If `requirements.txt` exists:
 
 ```python
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` is not present or is incomplete, install the packages mentioned in the code (for example: `numpy`, `matplotlib`, `pillow`, `opencv-python`, `tifffile`, a GUI framework such as `PyQt5` or `PySide6`, and any LLM client libraries you plan to use).  
+Otherwise, install the main stack (adapt to your environment as needed):
 
----
+```python
+pip install numpy matplotlib pandas tifffile trackpy gradio pyqt5
+```
 
-## Running the UI (`ui_demo_final.py`)
-
-To start the graphical user interface:
+4. **Run the demo UI**
 
 ```python
 python ui_demo_final.py
 ```
 
-Typical workflow in the UI:
+5. **In the UI you can**
 
-- Open a confocal image / stack from the “Open” or “Load” button.  
-- Browse through z‑slices and channels using the provided controls.  
-- Apply basic processing steps (e.g. normalization, projections, segmentation, etc., depending on what the current code supports).  
-
-If an error occurs on startup, check that:
-
-- You are using a compatible Python version (for example, 3.9+).  
-- All required dependencies are installed in the active environment.  
-
----
-
-## LLM Integration
-
-LLM integration is **optional**. By default, the UI should run without any API keys, but LLM‑powered features will be disabled.
-
-To enable LLM features:
-
-1. **Choose a provider**
-
-   - OpenAI (e.g. `gpt‑4o`)  
-   - Anthropic (Claude)  
-   - Any other provider supported in your code  
-
-2. **Set your API key**
-
-   Depending on how your code is structured, you can either:
-
-   - Set an environment variable before launching the UI, for example:
-
-     ```
-     export OPENAI_API_KEY="YOUR_API_KEY_HERE"   # Linux/macOS
-     # setx OPENAI_API_KEY "YOUR_API_KEY_HERE"   # Windows
-     ```
-
-     or an analogous variable for other providers (for example `ANTHROPIC_API_KEY`).
-
-   - Or edit the configuration section in the repository (for example a file such as `config.py`, `.env`, or a dedicated settings block in `ui_demo_final.py`) and insert your API key there:
-
-     ```
-     OPENAI_API_KEY = "YOUR_API_KEY_HERE"   # replace with your real key
-     ```
-
-   Make sure this file is **not** committed to version control if it contains private keys.
-
-3. **Use LLM‑powered tools inside the UI**
-
-   Once the key is set, the UI can expose actions such as:
-
-   - “Ask the model about this image/ROI”  
-   - “Generate analysis notes / methods section”  
-   - “Suggest processing pipeline”  
+- Load an example confocal stack or upload your own 3D/4D dataset. [file:70]  
+- Enter basic metadata (voxel size, frame interval, etc.).  
+- Run:
+  - Particle detection and tracking.  
+  - MSD and anomalous‑diffusion analysis.  
+  - Imaging diagnostics (photobleaching curves, depth‑dependent intensity, crowding metrics).  
+- View plots and an explanation panel that summarises the results and highlights possible limitations or follow‑up experimental changes. [file:70]
 
 ---
 
-## Repository Structure
+## Objectives and design philosophy
 
-A typical layout for this project is:
+MicrosCopilot is designed around recurring challenges in quantitative confocal microscopy: [file:70]
 
-- `ui_demo_final.py` – Main GUI entry point for end users.  
-- Other `*.py` modules – Image loading, processing and LLM helpers.  
-- `data/` or `examples/` – Example confocal images or test data (if included).  
-- `requirements.txt` – Python dependencies.  
+- **Bridge raw data and physical insight**  
+  - Provide end‑to‑end workflows from image stacks to MSDs, diffusion exponents, and imaging diagnostics, with parameters and assumptions exposed.  
 
-Check inline comments in the source files for more detailed developer‑level documentation.
+- **Make analysis transparent and physics‑grounded**  
+  - Prioritise clear diagnostics (bleaching, depth‑loss, crowding) and explicit model choices over purely data‑driven, black‑box predictions.  
+
+- **Unify simulation and experiment**  
+  - Use a digital twin to generate synthetic confocal‑like data with known ground truth, enabling validation and stress‑testing of analysis pipelines before applying them to experimental datasets.  
+
+- **Support collaboration and education**  
+  - Offer an interface and explanation layer that encode expert heuristics in a form that students and collaborators can inspect, adapt, and build on.
 
 ---
 
-## Roadmap / Ideas
+## Core components
 
-- Add more robust support for common confocal formats (e.g. `.czi`, `.lif`, `.nd2`).  
-- Integrate advanced segmentation models (e.g. Cellpose) as optional modules.  
-- Add export functions for analysis reports generated with the help of LLMs.  
+MicrosCopilot combines three main components into one workflow. [file:70]
+
+### Physics‑informed digital twin
+
+- Simulates 3D Brownian particle trajectories with configurable diffusion coefficient, particle density, voxel size, and frame interval.  
+- Renders trajectories into 4D confocal‑like image stacks using an anisotropic 3D Gaussian PSF.  
+- Incorporates key imaging artifacts:
+  - Depth‑dependent attenuation.  
+  - Global photobleaching (exponential intensity decay over time).  
+  - Additive Gaussian noise.  
+- Enables benchmarking and sensitivity analysis: compare recovered MSDs and exponents to the known ground truth under controlled artifact levels. [file:70]
+
+### Modular analysis pipeline (“agents”)
+
+- **Planner**  
+  - Ingests user goals, dataset metadata, and preferences to propose an explicit analysis plan (mode, whether to use the digital twin for comparison, initial tracking parameters).  
+
+- **Detection & Tracking**  
+  - Converts 3D/4D stacks into particle trajectories using established tools such as Trackpy (feature localization and linking).  
+  - Produces trajectory tables and quality metrics (detection counts, track‑length distributions). [file:70]
+
+- **Physics Analysis**  
+  - Computes ensemble‑averaged MSD curves.  
+  - Fits anomalous‑diffusion models to extract exponents and effective diffusion coefficients.  
+  - Evaluates imaging diagnostics: bleaching curves, depth‑intensity profiles, crowding metrics based on nearest‑neighbour distances. [file:70]
+
+- **Explainer**  
+  - Translates numerical outputs into concise, experiment‑focused interpretations.  
+  - Highlights limitations (e.g. short tracks, unreliable long‑lag MSDs) and suggests concrete next steps (change frame rate, adjust laser power, alter acquisition depth). [file:70]
+
+### Interactive interface
+
+- Lightweight UI (via `ui_demo_final.py` and/or a web interface) that exposes the full pipeline without hiding intermediate results.  
+- Intended for day‑to‑day use by experimentalists, method developers, and students working with confocal data. [file:70]
+
+---
+
+## Why it is useful for scientists and researchers
+
+MicrosCopilot is particularly suited for soft‑matter physics, microrheology, biophysics, and cell‑imaging workflows where confocal stacks must be turned into quantitative transport metrics. [file:70]
+
+- **Reduces manual trial‑and‑error**  
+  - Encodes tracking and analysis heuristics into a modular pipeline that can be reused and tuned systematically.  
+  - Digital twin allows rapid testing of parameter choices and failure modes before committing microscope time.
+
+- **Improves trust and interpretability**  
+  - Pairs physical metrics (MSDs, exponents) with imaging diagnostics to separate experimental artifacts from genuine physical phenomena.  
+  - Makes analysis steps, models, and assumptions explicit and inspectable, facilitating review and reproducibility. [file:70]
+
+- **Enhances teaching and collaboration**  
+  - UI and explanation layer provide an accessible entry point for students and new collaborators to learn quantitative confocal analysis.  
+  - Serves as a template for physics‑aware, interpretable “copilot” tools in other microscopy or imaging domains. [file:70]
+
+---
+
+## Optional LLM integration (API keys)
+
+The planner and explainer are structured so they can optionally use a large language model for richer natural‑language planning and explanation, but **LLM integration is not required** for the core pipeline. [file:70]
+
+To enable LLM‑based features:
+
+1. Choose a provider (e.g. OpenAI, Anthropic, or another supported backend).  
+2. Set an API key through environment variables, for example:
+
+```python
+export OPENAI_API_KEY="YOUR_API_KEY_HERE" # Linux/macOS
+
+setx OPENAI_API_KEY "YOUR_API_KEY_HERE" # Windows
+'''
+
+or via a small config module that the code reads:
+
+```python
+OPENAI_API_KEY = "YOUR_API_KEY_HERE"
+'''
+
+
+3. Ensure any file containing secrets is added to `.gitignore` and not committed to the repository.
+
+Without a key, the digital twin, tracking, physics analysis, diagnostics, and plots remain fully usable.
+
+---
+
+## Repository structure (indicative)
+
+Exact paths may differ, but conceptually the project is organised as follows. [file:70]
+
+- `ui_demo_final.py` – main entry point for the demo GUI.  
+- Digital‑twin modules – simulation of trajectories and confocal‑like stacks with artifacts.  
+- Analysis modules – detection, tracking, MSD computation, diffusion fitting, diagnostics.  
+- Agent logic – planner, physics analysis, explainer.  
+- Notebooks – example workflows and experiments.  
+- `requirements.txt` – Python dependencies (if present).
 
 ---
 
 ## Contributing
 
-Pull requests and issues are welcome:
+Potential extensions include:
 
-- Report bugs with a minimal example and error message.  
-- Open feature requests for new UI elements, file formats or LLM workflows.  
+- Improved tracking/localisation and segmentation backends. [file:70]  
+- Richer digital‑twin models (viscoelastic motion, additional artifacts, extended optical models).  
+- New visualisations and domain‑specific presets in the UI.  
 
-For substantial changes, start by opening an issue to discuss the proposal.
-
----
-
-## License
-
-Add your preferred license here (for example: MIT, BSD‑3‑Clause, or GPL).
+Issues and pull requests are welcome; contributions that preserve the framework’s transparency, physics‑awareness, and usability for experimentalists are especially encouraged.
