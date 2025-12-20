@@ -57,7 +57,7 @@ python ui_demo_final.py
 
 - **Choose analysis options**  
   - Select a tracking backend (e.g. Trackpy or other available methods).  
-  - Provide an optional natural‑language prompt describing your analysis goal (e.g. “estimate diffusion in the z‑direction and check for bleaching”). [file:70]  
+  - Provide an optional natural‑language prompt describing your analysis goal (e.g. “estimate diffusion in the z‑direction and check for bleaching”).  
   - Toggle expert/advanced options, such as:
     - Using or comparing against the physics‑informed digital twin.  
     - Enabling advanced diagnostics (depth‑dependent intensity profiles, crowding metrics).  
