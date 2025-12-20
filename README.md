@@ -143,15 +143,14 @@ To enable LLM‑based features:
 
 ```python
 export OPENAI_API_KEY="YOUR_API_KEY_HERE" # Linux/macOS
-
 setx OPENAI_API_KEY "YOUR_API_KEY_HERE" # Windows
-'''
+```
 
 or via a small config module that the code reads:
 
 ```python
 OPENAI_API_KEY = "YOUR_API_KEY_HERE"
-'''
+```
 
 
 3. Ensure any file containing secrets is added to `.gitignore` and not committed to the repository.
