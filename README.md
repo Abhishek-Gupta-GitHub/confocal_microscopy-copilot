@@ -1,8 +1,8 @@
 ## MicrosCopilot: Confocal Microscopy Copilot
 
-MicrosCopilot is a **physics‑aware framework and GUI** for quantitative confocal microscopy. It helps turn raw 3D/4D confocal stacks into interpretable physical metrics such as mean‑squared displacement (MSD), anomalous diffusion exponents, and imaging diagnostics (bleaching, depth‑loss, crowding) in a transparent, reproducible way. [file:70]
+MicrosCopilot is a **physics‑aware framework and GUI** for quantitative confocal microscopy. It helps turn raw 3D/4D confocal stacks into interpretable physical metrics such as mean‑squared displacement (MSD), anomalous diffusion exponents, and imaging diagnostics (bleaching, depth‑loss, crowding) in a transparent, reproducible way.  
 
-The central idea is to combine a configurable digital twin, a modular analysis pipeline, and an interactive interface so that experimentalists can analyse, debug, and interpret confocal experiments without relying on opaque black‑box tools. [file:70]
+The central idea is to combine a configurable digital twin, a modular analysis pipeline, and an interactive interface so that experimentalists can analyse, debug, and interpret confocal experiments without relying on opaque black‑box tools.  
 
 ---
 
@@ -47,19 +47,19 @@ python ui_demo_final.py
 
 5. **In the UI you can**
 
-- Load an example confocal stack or upload your own 3D/4D dataset. [file:70]  
+- Load an example confocal stack or upload your own 3D/4D dataset.    
 - Enter basic metadata (voxel size, frame interval, etc.).  
 - Run:
   - Particle detection and tracking.  
   - MSD and anomalous‑diffusion analysis.  
   - Imaging diagnostics (photobleaching curves, depth‑dependent intensity, crowding metrics).  
-- View plots and an explanation panel that summarises the results and highlights possible limitations or follow‑up experimental changes. [file:70]
+- View plots and an explanation panel that summarises the results and highlights possible limitations or follow‑up experimental changes.  
 
 ---
 
 ## Objectives and design philosophy
 
-MicrosCopilot is designed around recurring challenges in quantitative confocal microscopy: [file:70]
+MicrosCopilot is designed around recurring challenges in quantitative confocal microscopy:  
 
 - **Bridge raw data and physical insight**  
   - Provide end‑to‑end workflows from image stacks to MSDs, diffusion exponents, and imaging diagnostics, with parameters and assumptions exposed.  
@@ -77,7 +77,7 @@ MicrosCopilot is designed around recurring challenges in quantitative confocal m
 
 ## Core components
 
-MicrosCopilot combines three main components into one workflow. [file:70]
+MicrosCopilot combines three main components into one workflow.  
 
 ### Physics‑informed digital twin
 
@@ -87,7 +87,7 @@ MicrosCopilot combines three main components into one workflow. [file:70]
   - Depth‑dependent attenuation.  
   - Global photobleaching (exponential intensity decay over time).  
   - Additive Gaussian noise.  
-- Enables benchmarking and sensitivity analysis: compare recovered MSDs and exponents to the known ground truth under controlled artifact levels. [file:70]
+- Enables benchmarking and sensitivity analysis: compare recovered MSDs and exponents to the known ground truth under controlled artifact levels.  
 
 ### Modular analysis pipeline (“agents”)
 
@@ -96,27 +96,27 @@ MicrosCopilot combines three main components into one workflow. [file:70]
 
 - **Detection & Tracking**  
   - Converts 3D/4D stacks into particle trajectories using established tools such as Trackpy (feature localization and linking).  
-  - Produces trajectory tables and quality metrics (detection counts, track‑length distributions). [file:70]
+  - Produces trajectory tables and quality metrics (detection counts, track‑length distributions).  
 
 - **Physics Analysis**  
   - Computes ensemble‑averaged MSD curves.  
   - Fits anomalous‑diffusion models to extract exponents and effective diffusion coefficients.  
-  - Evaluates imaging diagnostics: bleaching curves, depth‑intensity profiles, crowding metrics based on nearest‑neighbour distances. [file:70]
+  - Evaluates imaging diagnostics: bleaching curves, depth‑intensity profiles, crowding metrics based on nearest‑neighbour distances.  
 
 - **Explainer**  
   - Translates numerical outputs into concise, experiment‑focused interpretations.  
-  - Highlights limitations (e.g. short tracks, unreliable long‑lag MSDs) and suggests concrete next steps (change frame rate, adjust laser power, alter acquisition depth). [file:70]
+  - Highlights limitations (e.g. short tracks, unreliable long‑lag MSDs) and suggests concrete next steps (change frame rate, adjust laser power, alter acquisition depth).  
 
 ### Interactive interface
 
 - Lightweight UI (via `ui_demo_final.py` and/or a web interface) that exposes the full pipeline without hiding intermediate results.  
-- Intended for day‑to‑day use by experimentalists, method developers, and students working with confocal data. [file:70]
+- Intended for day‑to‑day use by experimentalists, method developers, and students working with confocal data.  
 
 ---
 
 ## Why it is useful for scientists and researchers
 
-MicrosCopilot is particularly suited for soft‑matter physics, microrheology, biophysics, and cell‑imaging workflows where confocal stacks must be turned into quantitative transport metrics. [file:70]
+MicrosCopilot is particularly suited for soft‑matter physics, microrheology, biophysics, and cell‑imaging workflows where confocal stacks must be turned into quantitative transport metrics.  
 
 - **Reduces manual trial‑and‑error**  
   - Encodes tracking and analysis heuristics into a modular pipeline that can be reused and tuned systematically.  
@@ -124,17 +124,17 @@ MicrosCopilot is particularly suited for soft‑matter physics, microrheology, b
 
 - **Improves trust and interpretability**  
   - Pairs physical metrics (MSDs, exponents) with imaging diagnostics to separate experimental artifacts from genuine physical phenomena.  
-  - Makes analysis steps, models, and assumptions explicit and inspectable, facilitating review and reproducibility. [file:70]
+  - Makes analysis steps, models, and assumptions explicit and inspectable, facilitating review and reproducibility.  
 
 - **Enhances teaching and collaboration**  
   - UI and explanation layer provide an accessible entry point for students and new collaborators to learn quantitative confocal analysis.  
-  - Serves as a template for physics‑aware, interpretable “copilot” tools in other microscopy or imaging domains. [file:70]
+  - Serves as a template for physics‑aware, interpretable “copilot” tools in other microscopy or imaging domains.  
 
 ---
 
 ## Optional LLM integration (API keys)
 
-The planner and explainer are structured so they can optionally use a large language model for richer natural‑language planning and explanation, but **LLM integration is not required** for the core pipeline. [file:70]
+The planner and explainer are structured so they can optionally use a large language model for richer natural‑language planning and explanation, but **LLM integration is not required** for the core pipeline.  
 
 To enable LLM‑based features:
 
@@ -162,7 +162,7 @@ Without a key, the digital twin, tracking, physics analysis, diagnostics, and pl
 
 ## Repository structure (indicative)
 
-Exact paths may differ, but conceptually the project is organised as follows. [file:70]
+Exact paths may differ, but conceptually the project is organised as follows.  
 
 - `ui_demo_final.py` – main entry point for the demo GUI.  
 - Digital‑twin modules – simulation of trajectories and confocal‑like stacks with artifacts.  
@@ -177,7 +177,7 @@ Exact paths may differ, but conceptually the project is organised as follows. [f
 
 Potential extensions include:
 
-- Improved tracking/localisation and segmentation backends. [file:70]  
+- Improved tracking/localisation and segmentation backends.    
 - Richer digital‑twin models (viscoelastic motion, additional artifacts, extended optical models).  
 - New visualisations and domain‑specific presets in the UI.  
 
