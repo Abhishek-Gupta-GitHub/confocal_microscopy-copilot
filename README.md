@@ -1,178 +1,145 @@
-# Confocal Microscopy Copilot
+Confocal Microscopy Copilot
+Confocal Microscopy Copilot is a Python toolkit and user interface for loading, exploring and processing confocal microscopy image stacks, with optional integration of large language models (LLMs) for assisted analysis and documentation.
+​
 
-An **AI-assisted confocal microscopy copilot** for simulating, analyzing, and explaining Brownian particle movies and soft‑matter experiments. It combines a digital twin of Brownian motion, classical image analysis, particle tracking, and LLM‑based agents to help experimentalists go from raw movies to quantitative physics and plain‑language reports. [page:1]
+The main entry point for end users is ui_demo_final.py, which starts an interactive GUI.
 
-## Key Features
+Features
+Load common confocal microscopy image formats (e.g. multi‑channel and z‑stack images).
+​
 
-- Load or simulate confocal microscopy movies of Brownian particles. [page:1]
-- Detect and track particles over time to build trajectories. [page:1]
-- Estimate physical parameters such as diffusion coefficients and mean‑square displacement. [page:1]
-- Use a configurable digital twin to compare experiment vs simulation. [page:1]
-- Multi‑agent architecture (data I/O, detection/tracking, physics analysis, explanation). [page:1]
-- Optional LLM‑based copilot to explain results, suggest next steps, and help with troubleshooting. [page:1]
+Basic preprocessing utilities (normalization, cropping, projections, etc.).
+​
 
----
+Interactive GUI for browsing slices, channels and simple analysis workflows via ui_demo_final.py.
+​
 
-## Repository Structure
+Optional LLM integration (e.g. OpenAI, Anthropic, etc.) for:
 
-The current repository is organized as: [page:1]
+Natural‑language description of images or ROIs
 
-- `copilot/` – core multi‑agent logic (data loader, tracker, physics analyst, explainer). [page:1]
-- `notebooks/` – Jupyter notebooks for demos and hackathon workflows. [page:1]
-- `data/` – example datasets and synthetic movies (or download scripts). [page:1]
-- `legacy/` – older scripts and experiments kept for reference. [page:1]
-- `results/` – saved analysis outputs and figures. [page:1]
-- `src/` – supporting source modules used by the UI and notebooks. [page:1]
-- `ui_demo_final` – entry point script for the interactive demo UI. [page:1]
-- `requirements.txt` – Python dependencies. [page:1]
-- `LICENSE`, `README.md` – project metadata and documentation. [page:1]
+Drafting analysis notes, methods text or processing recipes
 
----
+Turning GUI actions into reproducible code snippets
+​
 
-## Installation
-
+Installation
 Clone the repository
+
+bash
 git clone https://github.com/Abhishek-Gupta-GitHub/confocal_microscopy-copilot.git
 cd confocal_microscopy-copilot
+Create and activate a virtual environment (recommended)
 
-(Recommended) create and activate a virtual environment, then install dependencies
+bash
+python -m venv .venv
+source .venv/bin/activate   # on Linux/macOS
+# .venv\Scripts\activate    # on Windows
+Install Python dependencies
+
+bash
 pip install -r requirements.txt
+If requirements.txt is not present or is incomplete, install the packages mentioned in the code (for example: numpy, matplotlib, pillow, opencv-python, tifffile, any GUI framework such as PyQt5/PySide6, and any LLM client libraries you plan to use).
+​
 
-If `requirements.txt` is incomplete for your setup, install the main scientific stack manually (e.g. `numpy`, `scipy`, `matplotlib`, `pandas`, `trackpy`, `deeptrack`, and any UI / LLM dependencies you use). [page:1]
+Running the UI (ui_demo_final.py)
+To start the graphical user interface:
 
----
+bash
+python ui_demo_final.py
+Typical workflow in the UI:
 
-## How to run the UI demo (`ui_demo_final`)
+Open a confocal image / stack from the “Open” or “Load” button.
+​
 
-The repo includes a ready‑to‑use UI demo that showcases the Confocal Microscopy Copilot end‑to‑end. [page:1]
+Browse through z‑slices and channels using the provided controls.
 
-### 1. Start the UI demo
+Apply basic processing steps (e.g. normalization, projections, segmentation, etc., depending on what the current code supports).
 
-From the repository root:
+If an error occurs on startup, check that:
 
+You are using a compatible Python version (e.g. 3.9+).
+​
 
-This will:
+All required dependencies are installed in the active environment.
 
-- Launch an interactive UI (for example a local web interface) in your browser.  
-- Allow you to choose between loading experimental data or using built‑in example / synthetic movies.  
-- Run the full pipeline: preprocessing → particle detection and tracking → physics analysis → optional LLM explanation.  
+LLM Integration
+LLM integration is optional. By default, the UI should run without any API keys, but LLM‑powered features will be disabled.
 
-If a browser tab does not open automatically, copy the URL printed in the terminal (usually something like `http://127.0.0.1:7860`) and paste it into your browser.
+To enable LLM features:
 
-### 2. What you can do in the UI
+Choose a provider
 
-Typical interactions:
+OpenAI (e.g. gpt‑4o)
 
-- **Select input data**  
-  - Load your own confocal movie / stack from file, or  
-  - Use provided example or synthetic datasets.
+Anthropic (Claude)
 
-- **Tune analysis parameters**  
-  - Adjust detection thresholds, minimum particle size, tracking search range, and frame selection.
+Other providers supported in your code
 
-- **Run tracking & analysis**  
-  - Extract particle trajectories.  
-  - Compute MSD curves and diffusion‑related quantities.  
-  - Compare results with the internal Brownian **digital twin**.
+Set your API key
 
-- **Ask the copilot (if LLM enabled)**  
-  - Get plain‑language explanations of plots and parameters.  
-  - Ask what a given diffusion coefficient means or how to improve data quality.  
+Depending on how the code is structured, you can either:
 
-LLM support is optional; the UI still runs the classical image and tracking pipeline without an API key.
+Set an environment variable before launching the UI, e.g.:
 
----
+bash
+export OPENAI_API_KEY="YOUR_API_KEY_HERE"   # Linux/macOS
+# setx OPENAI_API_KEY "YOUR_API_KEY_HERE"   # Windows
+or a similar variable for other providers (e.g. ANTHROPIC_API_KEY).
+​
 
-## Notebook Workflows
+Or edit the configuration section in the repository (for example a file such as config.py, .env, or a dedicated settings block in ui_demo_final.py) and insert your API key there:
 
-For transparent, step‑by‑step experiments, use the notebooks in the `notebooks/` folder. [page:1]
+python
+OPENAI_API_KEY = "YOUR_API_KEY_HERE"   # replace with your real key
+Make sure this file is not committed to version control if it contains private keys.
 
-### 1. Open the notebooks
+Use LLM‑powered tools inside the UI
 
-From the repo root:
+Once the key is set, the UI can expose actions such as:
 
-jupyter lab
+“Ask the model about this image/ROI”
 
-or
-jupyter notebook
+“Generate analysis notes / methods section”
 
+“Suggest processing pipeline”
 
-Then:
+The exact LLM capabilities depend on the current implementation in this repository; if you extend the code, keep the API‑key usage isolated in a small configuration module so others can easily plug in their own keys.
+​
 
-1. Navigate to the `notebooks/` folder. [page:1]  
-2. Open the main hackathon notebook (for example: `confocal_copilot_demo.ipynb` or similarly named).  
-3. Run the cells in order.
+Repository Structure
+The exact layout may evolve, but a typical structure for this project is:
 
-### 2. Typical notebook pipeline
+ui_demo_final.py – Main GUI entry point for end users.
+​
 
-The main notebook is organized into logical sections:
+*.py modules – Image loading, processing and LLM helpers.
 
-1. **Data loading / simulation**  
-   - Load a confocal movie from `data/` or from your own file.  
-   - Or generate synthetic Brownian movies using the digital twin.
+data/ or examples/ – Example confocal images or test data (if included).
+​
 
-2. **Particle detection and tracking**  
-   - Detect particles frame‑by‑frame.  
-   - Build trajectories with a tracking algorithm.  
-   - Visualize tracks overlaid on the raw movie.
+requirements.txt – Python dependencies.
 
-3. **Physics analysis**  
-   - Compute mean‑square displacement (MSD) curves.  
-   - Estimate diffusion coefficients and other physical parameters relevant for soft‑matter / colloidal systems.
+Check inline comments in the source files for more detailed developer documentation.
 
-4. **Copilot / LLM explanations (optional)**  
-   - When configured, call the ChatExplainer‑type agent from within the notebook.  
-   - Generate human‑readable summaries, method descriptions, and suggestions for parameter tuning or follow‑up experiments. [page:1]
+Roadmap / Ideas
+Add more robust support for common confocal formats (e.g. .czi, .lif, .nd2).
+​
 
-### 3. When to use UI vs notebook
+Integrate advanced segmentation models (e.g. Cellpose) as optional modules.
+​
 
-- Use the **UI demo** (`ui_demo_final`) for quick interactive exploration, hackathon judging, and non‑technical users.  
-- Use the **notebooks** when you want:
-  - Full transparency of each processing step.  
-  - Custom plots or analysis.  
-  - To integrate your own datasets and experimental protocols. [page:1]
+Add export functions for analysis reports generated with the help of LLMs.
+​
 
----
+Contributing
+Pull requests and issues are welcome:
 
-## LLM / Copilot Integration
+Report bugs with a minimal example and error message.
 
-If LLM support is enabled: [page:1]
+Open feature requests for new UI elements, file formats or LLM workflows.
 
-- Configure your API key and model name in `config.py` or via environment variables. [page:1]  
-- The **ChatExplainer** (or equivalent agent) can:
-  - Summarize analysis results.  
-  - Explain physical meaning (e.g. diffusion coefficient, Brownian motion regimes).  
-  - Suggest parameter changes or follow‑up experiments. [page:1]  
+For substantial changes, start by opening an issue to discuss the proposal.
 
-LLM integration is optional; the classical analysis pipeline works without it. [page:1]
-
----
-
-## Use Cases
-
-- Confocal Brownian motion experiments in soft matter and colloids. [page:1]  
-- Educational demos for particle tracking and diffusion analysis. [page:1]  
-- Rapid prototyping of microscopy copilot ideas for hackathons and lab projects. [page:1]
-
----
-
-## Keywords
-
-Confocal microscopy, Brownian motion, particle tracking, diffusion coefficient, soft matter physics, AI copilot, multi‑agent system, digital twin, image analysis pipeline, LLM‑driven microscopy assistant [page:1]
-
----
-
-## License
-
-This project is distributed under the MIT License (see `LICENSE` file for details). [page:1]
-
-## Acknowledgements
-
-- Built during a global microscopy / AI hackathon as a proof‑of‑concept **confocal physics copilot**. [page:1]  
-- Inspired by existing work in confocal microscopy, particle tracking, and LLM‑based copilots for scientific workflows. [page:1]
-
-
-
-
-From a terminal:
-
+License
+Specify the license you want to use here (for example: MIT, BSD‑3‑Clause, or GPL)
